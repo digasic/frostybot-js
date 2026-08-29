@@ -15,7 +15,7 @@ Standalone maintained fork of Frostybot-JS — a Node.js API endpoint for crypto
 
 ### Disclaimer
 
-Use at your own risk. Prefer testnet / isolated API keys. Risk management is entirely yours.
+Use at your own risk. Prefer isolated API keys with limited permissions. Risk management is entirely yours.
 
 ### Supported exchange
 

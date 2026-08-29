@@ -20,7 +20,6 @@
         <th scope="col">Stub</th>
         <th scope="col">Exchange</th>
         <th scope="col">Description</th>
-        <th scope="col text-center">Testnet</th>
         <th scope="col">Actions</th>
       </tr>
     </thead>
@@ -35,7 +34,6 @@
           <td><%= account.stub.toLowerCase() %></td>
           <td><%= capitalize(account.exchange) %> <%= account.type != null ? " " + capitalize(account.type) : "" %></td>
           <td><%= account.description %></td>
-          <td><%= account.parameters.testnet == "true" ? "Yes" : "No" %></td>
           <td>
             <a href="#" data-stub="<%= account.stub.toLowerCase() %>" class="testaccountlink" data-toggle="tooltip" title="Test"><span class="fa fa-bolt fa-lg"></span></a>
             <a class="editaccountlink ml-3" href="#" data-stub="<%= account.stub.toLowerCase() %>" data-toggle="tooltip" title="Edit API Key"><span class="fa fa-key fa-lg"></span></a>

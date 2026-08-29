@@ -91,9 +91,6 @@ module.exports = class frostybot_exchange_base {
             this.ccxtobj = new exchangeClass (accountParams.parameters);
             this.ccxtobj.options = Object.assign({}, this.ccxtobj.options || {}, accountParams.parameters.options || {});
             this.ccxtobj.options.adjustForTimeDifference = true;
-            if (this.account.parameters && String(this.account.parameters.testnet) === 'true') {
-                this.accounts.apply_demo_mode(this.ccxtobj, true);
-            }
             try {
                 await this.ccxtobj.loadMarkets();    
                 return true;

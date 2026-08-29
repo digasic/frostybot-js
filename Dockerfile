@@ -1,4 +1,4 @@
-﻿FROM node:20-bookworm
+FROM node:20-bookworm
 
 ENV SSH_USER="frostybot"
 ENV SSH_PASS="__frostybot123__"

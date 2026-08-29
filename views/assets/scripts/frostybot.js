@@ -512,7 +512,6 @@ $( document ).ready(function() {
                 uuid: getUUID(),
                 stub: $("#inputstub").val(),
                 exchange: exchange,
-                testnet: $("#inputtestnet").is(":checked"),
                 apikey: $("#inputapikey").val(),
                 secret: $("#inputsecret").val(),
                 description: $("#inputdescription").val(),

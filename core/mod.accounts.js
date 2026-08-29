@@ -124,11 +124,13 @@ module.exports = class frostybot_accounts_module extends frostybot_module {
             description: { optional: 'string'  },
             apikey: {      required: 'string'  },
             secret: {      required: 'string'  },
-            testnet: {     optional: 'boolean' },
             type: {        optional: 'string', format: 'lowercase', oneof: ['spot', 'margin', 'futures', 'coinm'] },
         }
 
         if (!(params = this.utils.validator(params, schema))) return false; 
+
+        // Live trading only — ignore legacy demo/testnet flags if clients still send them
+        delete params.testnet;
 
         if ((params.exchange == 'binance') && (!params.hasOwnProperty('type'))) {
             return this.output.error('binance_req_type')
@@ -220,8 +222,6 @@ module.exports = class frostybot_accounts_module extends frostybot_module {
             }
         }
 
-        var testnet = account.parameters.hasOwnProperty('testnet') ? String(account.parameters.testnet) == "true" : false;
-
         var result = {
             exchange: account.hasOwnProperty('exchange') ? account.exchange : null,
             description: account.hasOwnProperty('description') ? account.description : null,
@@ -267,26 +267,8 @@ module.exports = class frostybot_accounts_module extends frostybot_module {
         }
         const ccxtobj = new exchangeClass ();
         const ccxturls = ccxtobj.urls;
-        // Keep production URL catalog; Demo Trading is enabled at runtime via enableDemoTrading()
-        // (do NOT rewrite urls.api to legacy futures testnet — it is deprecated)
         result.parameters.urls = ccxturls;
-        result.demo = testnet;
         return result;
-    }
-
-
-    // Enable Binance Demo Trading (demo.binance.com) when stub is marked testnet/demo
-
-    apply_demo_mode(ccxtobj, testnet) {
-        if (!ccxtobj || String(testnet) !== 'true' && testnet !== true) return ccxtobj;
-        if (typeof ccxtobj.enableDemoTrading === 'function') {
-            ccxtobj.enableDemoTrading(true);
-            return ccxtobj;
-        }
-        if (typeof ccxtobj.setSandboxMode === 'function') {
-            ccxtobj.setSandboxMode(true);
-        }
-        return ccxtobj;
     }
 
 
@@ -308,7 +290,6 @@ module.exports = class frostybot_accounts_module extends frostybot_module {
             return false;
         }
         const ccxtobj = new exchangeClass (accountParams);
-        this.apply_demo_mode(ccxtobj, account.parameters && account.parameters.testnet);
         try {
             await ccxtobj.fetchBalance();
         } catch (e) {
@@ -317,7 +298,6 @@ module.exports = class frostybot_accounts_module extends frostybot_module {
                 this.output.exception(e);
                 return false;
             }
-            // Other errors still prove auth often worked; surface them
             this.output.exception(e);
             this.output.error('account_test');
             return false;

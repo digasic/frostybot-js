@@ -133,7 +133,7 @@ module.exports = class frostybot_exchange_binance_futures extends frostybot_exch
         var positions = [];
         let raw_positions = [];
         try {
-            // Demo Trading rejects legacy /fapi/v1/positionRisk (-5000); use unified fetchPositions
+            // Prefer unified fetchPositions over legacy positionRisk
             const fetched = await this.ccxt('fetch_positions');
             if (this.utils.is_array(fetched)) {
                 raw_positions = fetched
