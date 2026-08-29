@@ -59,7 +59,7 @@ module.exports = class frostybot_utils_module extends frostybot_module {
     // Check if value is an object
 
     is_object(val) {
-        return (typeof val === 'object') && (!this.is_array(val));
+        return (val !== null) && (typeof val === 'object') && (!this.is_array(val));
     }
 
 
