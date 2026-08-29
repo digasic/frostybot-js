@@ -45,16 +45,17 @@ Log: `/tmp/install.log`
 Image: **`ghcr.io/digasic/frostybot-js:latest`**
 
 ```bash
-docker pull ghcr.io/digasic/frostybot-js:latest
+docker pull ghcr.io/digasic/frostybot-js:v1.0.0
 
 docker run -d --name frostybot --restart unless-stopped \
   -p 8080:80 -p 2222:22 \
   -e SSH_PASS='change-me-now' \
   -v frostybot-db:/usr/local/frostybot-js/database \
   -v frostybot-log:/usr/local/frostybot-js/log \
-  ghcr.io/digasic/frostybot-js:latest
+  ghcr.io/digasic/frostybot-js:v1.0.0
 ```
 
+Or use tag **`latest`**.
 Or with Compose from this repo:
 
 ```bash
