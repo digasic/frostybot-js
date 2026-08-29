@@ -12,6 +12,9 @@ services:
       SSH_PORT: "22"
       SSH_USER: "${SSH_USER:-frostybot}"
       SSH_PASS: "${SSH_PASS:-changeme}"
+      GUI_AUTO_ENABLE: "${GUI_AUTO_ENABLE:-true}"
+      GUI_EMAIL: "${GUI_EMAIL:-admin@localhost}"
+      GUI_PASSWORD: "${GUI_PASSWORD:-frostybot123}"
     volumes:
       - frostybot-db:/usr/local/frostybot-js/database
       - frostybot-log:/usr/local/frostybot-js/log
