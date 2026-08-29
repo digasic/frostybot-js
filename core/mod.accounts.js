@@ -231,20 +231,38 @@ module.exports = class frostybot_accounts_module extends frostybot_module {
                 urls:       {},
             },   
         }
+        // Map Frostybot account type → dedicated ccxt 4 Binance class
+        var accountType = account.hasOwnProperty('type') ? String(account.type).toLowerCase() : 'futures';
+        var ccxtId = 'binance';
+        var defaultType = 'spot';
         if (result.exchange == 'binance') {
-            var type = (account.hasOwnProperty('type') ? account.type.replace('futures','future').replace('coinm','delivery') : 'future');
-            if (!['spot', 'margin', 'future', 'delivery'].includes(type)) {
-                return this.output.error('param_val_oneof', ['type', this.serialize_array(['spot', 'margin', 'futures', 'coinm'])])
+            if (['futures', 'future', 'usdm'].includes(accountType)) {
+                ccxtId = 'binanceusdm';
+                defaultType = 'future';
+                accountType = 'futures';
+            } else if (['coinm', 'delivery', 'dapi'].includes(accountType)) {
+                ccxtId = 'binancecoinm';
+                defaultType = 'delivery';
+                accountType = 'coinm';
+            } else if (accountType === 'margin') {
+                ccxtId = 'binance';
+                defaultType = 'margin';
+            } else if (accountType === 'spot') {
+                ccxtId = 'binance';
+                defaultType = 'spot';
             } else {
-                result.parameters['options'] = {
-                    defaultType : type,
-                };
+                return this.output.error('param_val_oneof', ['type', this.serialize_array(['spot', 'margin', 'futures', 'coinm'])]);
             }
+            result.parameters.options = {
+                defaultType: defaultType,
+                adjustForTimeDifference: true,
+                recvWindow: 10000,
+            };
         }
-        const exchangeId = account.exchange;
-        const exchangeClass = ccxtlib[exchangeId];
+        result.ccxtId = ccxtId;
+        const exchangeClass = ccxtlib[ccxtId];
         if (!exchangeClass) {
-            this.output.exception(new Error('CCXT exchange not available: ' + exchangeId + '. This build supports Binance only.'));
+            this.output.exception(new Error('CCXT exchange not available: ' + ccxtId + '. This build supports Binance only.'));
             return false;
         }
         const ccxtobj = new exchangeClass ();
@@ -276,7 +294,7 @@ module.exports = class frostybot_accounts_module extends frostybot_module {
         const ccxtlib = require ('ccxt');
         var ccxtparams = await this.ccxtparams(account);
         const accountParams = ccxtparams.parameters;
-        const exchangeId = account.exchange;
+        const exchangeId = ccxtparams.ccxtId || account.exchange;
         const exchangeClass = ccxtlib[exchangeId];
         if (!exchangeClass) {
             this.output.error('account_test');

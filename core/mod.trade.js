@@ -747,17 +747,32 @@ module.exports = class frostybot_trade_module extends frostybot_module {
             type    :   this.param_map[(price == undefined ? 'market' : 'limit')],
             side    :   side,
             amount  :   amount,
-            price   :   (price != undefined ? price : null),
+            price   :   (price != undefined ? price : undefined),
             params  :   {}
         }
         
-        // Add additional parameters
-        order_params.params[this.param_map.post]   = (String(post)   == "true" ? true : undefined);
-        order_params.params[this.param_map.ioc]    = (String(ioc)    == "true" ? true : undefined);
-        order_params.params[this.param_map.tag]    = tag;
+        // Add additional parameters only when the exchange maps the flag
+        const setMapped = (mapKey, value) => {
+            const key = this.param_map[mapKey];
+            if (key && value !== undefined && value !== null) {
+                if (mapKey === 'ioc' && value === true) order_params.params[key] = 'IOC';
+                else if (mapKey === 'post' && value === true) order_params.params[key] = true;
+                else if (mapKey !== 'ioc' && mapKey !== 'post') order_params.params[key] = value;
+                else if (mapKey === 'post' || mapKey === 'ioc') { /* handled above */ }
+            }
+        };
+        setMapped('post', String(post) == "true" ? true : undefined);
+        setMapped('ioc', String(ioc) == "true" ? true : undefined);
+        setMapped('tag', tag);
 
+        // Close defaults to reduce-only on derivatives
         if (type == 'close') {
-            order_params.params[this.param_map.reduce] = (String(reduce) == "true" ? true : undefined);
+            const reduceKey = this.param_map.reduce;
+            if (reduceKey) {
+                order_params.params[reduceKey] = (String(reduce) == "false" ? false : true);
+            }
+        } else if (String(reduce) == "true" && this.param_map.reduce) {
+            order_params.params[this.param_map.reduce] = true;
         }
 
         var custom_params = {
@@ -886,14 +901,16 @@ module.exports = class frostybot_trade_module extends frostybot_module {
             price = this.get_relative_price(market, price);
         }
 
-        // Convert percentage price to value for trailstop
-        if ((type == 'trailstop')  && (trigger.indexOf('%') != -1)) {
+        // Convert percentage price to value for trailstop (absolute fallback for non-Binance-style maps)
+        var trailstop_raw = trigger;
+        if ((type == 'trailstop')  && (String(trigger).indexOf('%') != -1)) {
             var position = await this.get_position(stub, symbol);
             if (position !== false) {
                 var side = position.direction == "long" ? "sell" : "buy"
                 var operator = side == "buy" ? "+" : "-";
             }
-            trigger = (operator + this.round_price(market, Math.abs(market.avg * (trigger.replace('%','') / 100)))) * 1;
+            // Keep raw percent for exchanges that need callbackRate; also compute absolute activation hint
+            trigger = (operator + this.round_price(market, Math.abs(market.avg * (String(trigger).replace('%','') / 100)))) * 1;
         }
 
         // If side is undefined, assume side based on trigger above or below market price
@@ -927,32 +944,34 @@ module.exports = class frostybot_trade_module extends frostybot_module {
      
         // Add additional parameters
         var reduce_only = (String(reduce) == "true" || reduce == true ? true : false);
-        order_params.params[this.param_map.reduce] = reduce_only;
+        if (['stoploss', 'takeprofit', 'trailstop'].includes(type) && reduce == undefined) {
+            reduce_only = true;
+        }
+        if (this.param_map.reduce) {
+            order_params.params[this.param_map.reduce] = reduce_only;
+        }
         
-        // Trigger for TP/SL
+        // Trigger for TP/SL (ccxt accepts stopPrice and triggerPrice)
         if (this.param_map.hasOwnProperty(type + '_trigger')) {
             order_params.params[this.param_map[type + '_trigger']] = trigger;
-        } else {
+        } else if (this.param_map.trigger) {
             order_params.params[this.param_map.trigger] = trigger;
+            order_params.params.triggerPrice = trigger;
         }
-        //if ((order_params.type == 'STOP_LOSS_LIMIT') && (order_params.price == null)) {
-        //    order_params.price = (trigger * 1)+1
-        //}
         if (order_params.params.hasOwnProperty('price')) {
             order_params.price = order_params.params.price;
             delete order_params.params.price
         }
 
         // Trigger type for TP/SL
-        if (this.param_map.hasOwnProperty('trigger_type')) {
-            order_params.params[this.param_map.trigger_type] = triggertype == undefined ? 'mark_price' : triggertype;
+        if (this.param_map.hasOwnProperty('trigger_type') && this.param_map.trigger_type) {
+            const wt = triggertype == undefined ? 'mark' : triggertype;
+            order_params.params[this.param_map.trigger_type] = String(wt).toLowerCase().indexOf('mark') !== -1 ? 'MARK_PRICE' : 'CONTRACT_PRICE';
         }
-
-        //order_params.params[this.param_map.tag]    = tag;
 
         var custom_params = {
             tag         :   tag,
-            trigger     :   trigger,
+            trigger     :   (type == 'trailstop' && trailstop_raw != null ? trailstop_raw : trigger),
             price       :   (price != undefined ? price : null),
             triggertype :   triggertype == undefined ? 'mark' : triggertype,
             reduce      :   reduce_only,

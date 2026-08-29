@@ -82,15 +82,15 @@ module.exports = class frostybot_exchange_base {
         if (this.account) {
             this.shortname = await this.accounts.get_shortname_from_stub(this.stub);
             const accountParams = await this.accounts.ccxtparams(this.account);
-            const exchangeId = this.account.exchange;
+            const exchangeId = accountParams.ccxtId || this.account.exchange;
             const exchangeClass = ccxtlib[exchangeId];
             if (!exchangeClass) {
                 this.output.exception(new Error('CCXT exchange not available: ' + exchangeId + ' (Binance-only build)'));
                 return false;
             }
             this.ccxtobj = new exchangeClass (accountParams.parameters);
-            this.ccxtobj.options = this.ccxtobj.options || {};
-            this.ccxtobj.options.adjustForTimeDifference = true
+            this.ccxtobj.options = Object.assign({}, this.ccxtobj.options || {}, accountParams.parameters.options || {});
+            this.ccxtobj.options.adjustForTimeDifference = true;
             if (accountParams.parameters && String(this.account.parameters && this.account.parameters.testnet) === 'true' && typeof this.ccxtobj.setSandboxMode === 'function') {
                 this.ccxtobj.setSandboxMode(true);
             }
@@ -435,6 +435,10 @@ module.exports = class frostybot_exchange_base {
 
     parse_orders(raworders) {
         var orders = [];
+        if (!this.utils.is_array(raworders)) {
+            if (raworders && raworders.result === 'error') return [];
+            return [];
+        }
         raworders.forEach(raworder => {
             orders.push(this.parse_order(raworder));
         });
@@ -512,21 +516,35 @@ module.exports = class frostybot_exchange_base {
         var [symbol, type, side, amount, price, order_params] = this.utils.extract_props(params, ['symbol', 'type', 'side', 'amount', 'price', 'params']);
         var market = await this.get_market_by_id_or_symbol(symbol);
         symbol = market.symbol;
-        let create_result = await this.ccxt('create_order',[symbol, type, side, amount, price, order_params]);
-        if (create_result.result == 'error') {
-            var errortype = create_result.data.name;
-            var trimerr = create_result.data.message.replace(/binance/gi,'')
+        side = String(side || '').toLowerCase();
+        amount = Math.abs(Number(amount));
+        order_params = order_params || {};
+        if (price === null || price === '') price = undefined;
+        // Prefer ccxt amount/price precision when available
+        try {
+            if (this.ccxtobj && typeof this.ccxtobj.amountToPrecision === 'function') {
+                amount = Number(this.ccxtobj.amountToPrecision(symbol, amount));
+            }
+            if (price != null && this.ccxtobj && typeof this.ccxtobj.priceToPrecision === 'function') {
+                price = Number(this.ccxtobj.priceToPrecision(symbol, price));
+            }
+        } catch (e) { /* fall back to pre-rounded values */ }
+
+        let create_result = await this.ccxt('create_order', [symbol, type, side, amount, price, order_params]);
+        if (create_result && create_result.result == 'error') {
+            var errortype = create_result.data && create_result.data.name;
+            var trimerr = create_result.data && create_result.data.message ? String(create_result.data.message).replace(/binance/gi, '') : 'order_failed';
             if (this.utils.is_json(trimerr)) {
                 var errormsg = JSON.parse(trimerr).error;
-                var result = {result: 'error', params: params, error: {type: errortype, message: errormsg}};
-            } else {
-                var errormsg = create_result.data.message;
-                var result = {result: 'error', params: params, error: {type: errortype, message: errormsg}};
+                return { result: 'error', params: params, error: { type: errortype, message: errormsg } };
             }
-        } else {
-            var result = {result: 'success', params: params, order: this.parse_order(create_result)};
+            return { result: 'error', params: params, error: { type: errortype, message: trimerr } };
         }
-        return result;
+        // cache_exec may return raw order, or {result:'success', data: order} in some paths
+        var raw_order = (create_result && create_result.order) ? create_result.order
+            : (create_result && create_result.data && create_result.data.id) ? create_result.data
+            : create_result;
+        return { result: 'success', params: params, order: this.parse_order(raw_order) };
     }
 
 
