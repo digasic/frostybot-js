@@ -33,7 +33,7 @@
                     {
                         "name": "[parameters('botName')]",
                         "properties": {
-                            "image": "frostyio/frostybot-js:latest",
+                            "image": "ghcr.io/digasic/frostybot-js:latest",
                             "resources": {
                                 "requests": {
                                     "cpu": "1",

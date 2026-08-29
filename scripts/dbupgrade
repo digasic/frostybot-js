@@ -3,23 +3,43 @@
 CURRENTPATH=`pwd`
 SCRIPTPATH=`dirname "$(readlink -f "$0")" | sed -e 's/\/scripts//g'`
 
-TYPE=`cat $SCRIPTPATH/.dbcfg | jq '.type' | sed 's/"//g'`
+TYPE=`cat $SCRIPTPATH/.dbcfg | jq -r '.type'`
 
-cd "$SCRIPTPATH" &
+cd "$SCRIPTPATH" || exit 1
 
 echo "Checking for database upgrades"
 
 if [ "$TYPE" == "sqlite" ]; then
-    FILE=`cat .dbcfg | jq '.file' | sed 's/"//g'`
-    DBVER=`sqlite3 $FILE "SELECT CASE COUNT(value) WHEN 0 THEN 0 ELSE value END FROM settings WHERE mainkey='core' AND subkey='sqlite:dbver';"`
-    UPGFILE="database/updates/update.sqlite.$DBVER.sql"
-    if [ -f "$UPGFILE" ]; then
-        echo "Upgrading $TYPE database using $UPGFILE" 
-        sudo sqlite3 $FILE < $UPGFILE
-        echo "Database upgrade completed"
+    FILE=`cat .dbcfg | jq -r '.file'`
+    INITFILE="database/init/init.sqlite.sql"
+    mkdir -p "$(dirname "$FILE")"
+
+    NEED_INIT="0"
+    if [ ! -f "$FILE" ] || [ ! -s "$FILE" ]; then
+        NEED_INIT="1"
     else
-        echo "No database upgrade required"
+        HAS_SETTINGS=`sqlite3 "$FILE" "SELECT COUNT(*) FROM sqlite_master WHERE type='table' AND name='settings';" 2>/dev/null || echo 0`
+        if [ "$HAS_SETTINGS" = "0" ]; then
+            NEED_INIT="1"
+        fi
+    fi
+
+    if [ "$NEED_INIT" = "1" ]; then
+        echo "Initializing SQLite database from $INITFILE"
+        rm -f "$FILE" "$FILE-shm" "$FILE-wal"
+        sqlite3 "$FILE" < "$INITFILE"
+        echo "Database initialized"
+    else
+        DBVER=`sqlite3 "$FILE" "SELECT CASE COUNT(value) WHEN 0 THEN 0 ELSE value END FROM settings WHERE mainkey='core' AND subkey='sqlite:dbver';" 2>/dev/null || echo 0`
+        UPGFILE="database/updates/update.sqlite.$DBVER.sql"
+        if [ -f "$UPGFILE" ]; then
+            echo "Upgrading $TYPE database using $UPGFILE"
+            sqlite3 "$FILE" < "$UPGFILE"
+            echo "Database upgrade completed"
+        else
+            echo "No database upgrade required"
+        fi
     fi
 fi
 
-cd "$CURRENTPATH" &
+cd "$CURRENTPATH" || true

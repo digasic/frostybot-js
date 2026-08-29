@@ -7,8 +7,8 @@
   |_|  |_|   \___/(___/   \__)\__  |______/ \___/  \__)
                              (____/                    
 
-   GitHub Repo:   https://github.com/CryptoMF/frostybot-js
-   Documentation: https://github.com/CryptoMF/frostybot-js/wiki
-   Docker Repo:   frostyio/frostybot-js:latest
-   Discord Link:  https://discord.gg/txPew7ntmn
+   Maintainer:    digasic
+   GitHub Repo:   https://github.com/digasic/frostybot-js
+   Documentation: https://github.com/digasic/frostybot-js#readme
+   Docker Image:  ghcr.io/digasic/frostybot-js:latest
 

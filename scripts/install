@@ -1,40 +1,60 @@
-#/bin/bash
+#!/bin/bash
+set -euo pipefail
 
-CURRENTPATH=`pwd`
+REPO_URL="${FROSTYBOT_REPO_URL:-https://github.com/digasic/frostybot-js.git}"
+REPO_BRANCH="${FROSTYBOT_REPO_BRANCH:-stable}"
+INSTALL_DIR="/usr/local/frostybot-js"
+CURRENTPATH="$(pwd)"
+LOG_FILE="/tmp/install.log"
 
-echo "Frostybot install started" 
+echo "Frostybot install started (digasic/frostybot-js)"
+: > "$LOG_FILE"
 
 echo "Updating package manager..."
 export DEBIAN_FRONTEND=noninteractive
 export DEBIAN_PRIORITY=critical
-sudo -E apt-get -qy update >> /tmp/install.log 2>&1
+sudo -E apt-get -qy update >> "$LOG_FILE" 2>&1
 
 echo "Installing prerequisite packages for Frostybot..."
-sudo -E apt-get -qy -o "Dpkg::Options::=--force-confdef" -o "Dpkg::Options::=--force-confold" install nodejs npm jq wget git sqlite3 >> /tmp/install.log 2>&1
+sudo -E apt-get -qy -o "Dpkg::Options::=--force-confdef" -o "Dpkg::Options::=--force-confold" \
+  install curl ca-certificates gnupg jq wget git sqlite3 build-essential python3 >> "$LOG_FILE" 2>&1
 
-echo "Cloning Frostybot Github repository..."
-sudo mkdir -p /usr/local && cd /usr/local/
-sudo git clone https://github.com/CryptoMF/frostybot-js.git frostybot-js >> /tmp/install.log 2>&1
+if ! command -v node >/dev/null 2>&1 || [[ "$(node -v 2>/dev/null | sed 's/v//;s/\..*//')" -lt 16 ]]; then
+  echo "Installing Node.js 16.x..."
+  curl -fsSL https://deb.nodesource.com/setup_16.x | sudo -E bash - >> "$LOG_FILE" 2>&1
+  sudo -E apt-get -qy install nodejs >> "$LOG_FILE" 2>&1
+fi
+
+echo "Cloning Frostybot repository from $REPO_URL ($REPO_BRANCH)..."
+sudo mkdir -p /usr/local
+if [ -d "$INSTALL_DIR/.git" ]; then
+  cd "$INSTALL_DIR"
+  sudo git fetch origin >> "$LOG_FILE" 2>&1
+  sudo git checkout "$REPO_BRANCH" >> "$LOG_FILE" 2>&1
+  sudo git reset --hard "origin/$REPO_BRANCH" >> "$LOG_FILE" 2>&1
+else
+  sudo rm -rf "$INSTALL_DIR"
+  sudo git clone --branch "$REPO_BRANCH" "$REPO_URL" "$INSTALL_DIR" >> "$LOG_FILE" 2>&1
+fi
 
 echo "Setting permissions..."
-cd /usr/local/frostybot-js
-sudo chgrp $USER -R /usr/local/frostybot-js >> /tmp/install.log 2>&1
-sudo npm install --unsafe-perm >> /tmp/install.log 2>&1
+cd "$INSTALL_DIR"
+sudo chown -R "$USER":"$USER" "$INSTALL_DIR" >> "$LOG_FILE" 2>&1 || true
+sudo npm install --unsafe-perm >> "$LOG_FILE" 2>&1
 
-echo "Creating frostybot command shortcut..." 
-sudo rm -Rf /usr/bin/frostybot
-sudo ln -s /usr/local/frostybot-js/frostybot /usr/bin/frostybot >> /tmp/install.log 2>&1
+echo "Creating frostybot command shortcut..."
+sudo rm -f /usr/bin/frostybot
+sudo ln -s "$INSTALL_DIR/frostybot" /usr/bin/frostybot >> "$LOG_FILE" 2>&1
 
-frostybot start
-frostybot autostart
+frostybot start || true
+frostybot autostart || true
 
-cd "$CURRENTPATH" &
+cd "$CURRENTPATH"
 
 echo "Frostybot install completed!"
 echo ""
 echo "You can start the server using this command:   frostybot start"
 echo "You can stop the server using this command:    frostybot stop"
 echo "You can upgrade the server using this command: frostybot upgrade"
+echo "Install log: $LOG_FILE"
 echo ""
-
-

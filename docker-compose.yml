@@ -1,0 +1,21 @@
+services:
+  frostybot:
+    image: ghcr.io/digasic/frostybot-js:latest
+    build: .
+    container_name: frostybot
+    restart: unless-stopped
+    ports:
+      - "${FROSTYBOT_HOST_PORT:-8080}:80"
+      - "${SSH_HOST_PORT:-2222}:22"
+    environment:
+      FROSTYBOT_PORT: "80"
+      SSH_PORT: "22"
+      SSH_USER: "${SSH_USER:-frostybot}"
+      SSH_PASS: "${SSH_PASS:-changeme}"
+    volumes:
+      - frostybot-db:/usr/local/frostybot-js/database
+      - frostybot-log:/usr/local/frostybot-js/log
+
+volumes:
+  frostybot-db:
+  frostybot-log:

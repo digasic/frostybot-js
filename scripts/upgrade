@@ -45,10 +45,11 @@ else
   sudo cp ./.dbcfg /tmp/$TS/
   sudo cp ./.port /tmp/$TS/
   sudo cp ./.proxy /tmp/$TS/
-  echo "Updating Frostybot files from Github"
+  echo "Updating Frostybot files from Github (digasic/frostybot-js)"
+  sudo git remote set-url origin https://github.com/digasic/frostybot-js.git > /dev/null 2>&1 || true
   #sudo git checkout stable > /dev/null 2>&1
   sudo git stash 
-  sudo git pull -f
+  sudo git pull -f origin stable
   sudo cp -f /tmp/$TS/database.* database/
   sudo cp -f /tmp/$TS/.dbcfg ./.dbcfg
   sudo cp -f /tmp/$TS/.port ./.port

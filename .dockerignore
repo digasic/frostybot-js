@@ -1,3 +1,11 @@
+.git
+.github
 node_modules
-ui
-npm-debug.log
+log/*
+database/*.db
+database/*.sqlite*
+*.md
+!README.md
+.dockerignore
+Dockerfile
+docker-compose.yml

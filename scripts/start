@@ -1,4 +1,4 @@
-#/bin/bash
+#!/bin/bash
 
 CURRENTPATH=`pwd`
 SCRIPTPATH=`dirname "$(readlink -f "$0")"`
@@ -11,23 +11,31 @@ else
     PORT=80
 fi
 
-
-PID=`sudo ps -ax | grep "fb-$PORT" | grep -v "grep" | awk '{print $1}'`
+PID=`ps -ax | grep "fb-$PORT" | grep -v "grep" | awk '{print $1}'`
 
 if [ ! "$PID" == "" ]; then
         echo "Frostybot server is already running on port $PORT (PID: $PID)"
 else
         echo "Starting Frostybot Server..."
-        cd "$SCRIPTPATH" &
-        cd ../ &
+        cd "$ROOTPATH" || exit 1
         ./scripts/dbupgrade
-        # echo "Checking for required NodeJS modules..."
-        # sudo npm install > /dev/null 2>&1
-	sudo npm start > /dev/null 2>&1 &
-        while [ "$PID" == "" ]; do
+        npm start >> ./log/frostybot.log 2>&1 &
+        WAIT=0
+        while [ "$PID" == "" ] && [ "$WAIT" -lt 60 ]; do
                 sleep 2
-                PID=`sudo ps -ax | grep "fb-$PORT" | grep -v "grep" | awk '{print $1}'`
+                WAIT=$((WAIT+2))
+                PID=`ps -ax | grep "fb-$PORT" | grep -v "grep" | awk '{print $1}'`
+                if ! pgrep -f "node ./bin/www" >/dev/null 2>&1 && [ "$WAIT" -ge 6 ]; then
+                    echo "Frostybot failed to start. Last log lines:"
+                    tail -n 40 ./log/frostybot.log || true
+                    exit 1
+                fi
         done
-        echo "Frostybot server started on port $PORT"        
-	cd "$CURRENTPATH" &
+        if [ "$PID" == "" ]; then
+            echo "Frostybot failed to start within timeout. Last log lines:"
+            tail -n 40 ./log/frostybot.log || true
+            exit 1
+        fi
+        echo "Frostybot server started on port $PORT"
+	cd "$CURRENTPATH" || true
 fi
