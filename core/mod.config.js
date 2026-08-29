@@ -143,6 +143,14 @@ module.exports = class frostybot_config_module extends frostybot_module {
                 if (key_parts[key_parts.length - 1] == val_parts[val_parts.length - 1]) {
                     return val_key;
                 }
+            } else if (
+                val_parts.includes('{symbol}') &&
+                key_parts.length > val_parts.length &&
+                key_parts[key_parts.length - 1] == val_parts[val_parts.length - 1] &&
+                val_parts[0] === '{stub}'
+            ) {
+                // Futures symbols contain ':' (BTC/USDT:USDT) → more key parts than template
+                return val_key;
             }
         }
         return false;
@@ -173,8 +181,10 @@ module.exports = class frostybot_config_module extends frostybot_module {
                 var stub = await this.validatestub(key_parts[idx]);
                 if (stub !== false) {
                     if (val_parts.includes('{symbol}')) {
-                        var idx = val_parts.indexOf('{symbol}');
-                        var symbol = await this.validatesymbol(stub, key_parts[idx]);
+                        var symIdx = val_parts.indexOf('{symbol}');
+                        var suffixCount = val_parts.length - 1 - symIdx;
+                        var symbolRaw = key_parts.slice(symIdx, key_parts.length - suffixCount).join(':');
+                        var symbol = await this.validatesymbol(stub, symbolRaw);
                         if (symbol !== false) {
                             return val_key;
                         } else {

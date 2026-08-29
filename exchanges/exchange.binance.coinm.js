@@ -115,19 +115,40 @@ module.exports = class frostybot_exchange_binance_coinm extends frostybot_exchan
     }
 
     async positions() {
-        this.set_cache_time('dapiPrivate_get_positionrisk', 5);
-        let raw_positions = await this.ccxt('dapiPrivate_get_positionrisk');
         await this.markets();
         var positions = [];
-        if (!this.utils.is_array(raw_positions)) raw_positions = [];
-        for (const raw_position of raw_positions.filter(p => p.positionAmt != 0)) {
-            const symbol = raw_position.symbol;
-            const market = await this.get_market_by_id_or_symbol(symbol);
+        let raw_positions = [];
+        try {
+            const fetched = await this.ccxt('fetch_positions');
+            if (this.utils.is_array(fetched)) {
+                raw_positions = fetched
+                    .filter(p => Math.abs(Number(p.contracts != null ? p.contracts : (p.info && p.info.positionAmt) || 0)) > 0)
+                    .map(p => ({
+                        symbol: (p.info && p.info.symbol) ? p.info.symbol : p.symbol,
+                        positionAmt: p.contracts != null ? p.contracts * (p.side === 'short' ? -1 : 1) : Number(p.info && p.info.positionAmt),
+                        entryPrice: p.entryPrice != null ? p.entryPrice : (p.info && p.info.entryPrice),
+                        liquidationPrice: p.liquidationPrice != null ? p.liquidationPrice : (p.info && p.info.liquidationPrice),
+                        _market_symbol: p.symbol,
+                        raw: p.info || p
+                    }));
+            }
+        } catch (e) {
+            this.set_cache_time('dapiPrivate_get_positionrisk', 5);
+            let legacy = await this.ccxt('dapiPrivate_get_positionrisk');
+            if (this.utils.is_array(legacy)) {
+                raw_positions = legacy.filter(p => Number(p.positionAmt) != 0);
+            }
+        }
+        for (const raw_position of raw_positions) {
+            const market = raw_position._market_symbol
+                ? await this.get_market_by_id_or_symbol(raw_position._market_symbol)
+                : await this.get_market_by_id_or_symbol(raw_position.symbol);
+            if (!market) continue;
             const direction = (raw_position.positionAmt > 0 ? 'long' : (raw_position.positionAmt < 0 ? 'short' : 'flat'));
             const quote_size = (raw_position.positionAmt * market.contract_size);
             const entry_price = (raw_position.entryPrice * 1);
             const liquidation_price = this.utils.is_numeric(raw_position.liquidationPrice) ? (raw_position.liquidationPrice * 1) : null;
-            const position = new this.classes.position_futures(market, direction, null, quote_size, entry_price, liquidation_price, raw_position);
+            const position = new this.classes.position_futures(market, direction, null, quote_size, entry_price, liquidation_price, raw_position.raw || raw_position);
             positions.push(position);
         }
         this.positions = positions;
