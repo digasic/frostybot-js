@@ -1,106 +1,47 @@
-// Websocket Server
-
-frostybot_websocket_ftx = require('../exchanges/websocket.ftx')
-frostybot_websocket_deribit = require('../exchanges/websocket.deribit')
+// Websocket Server (Binance-only build — legacy FTX/Deribit WS removed)
 
 const frostybot_module = require('./mod.base')
 
 module.exports = class frostybot_websocket_module extends frostybot_module {
 
-  // Constructor
-
   constructor() {
       super()
   }
-
-
-  // Initialize Module
 
   initialize() {
       this.connect_all();
   }
 
-
-  // Load all account stubs and connect to the relevant websocket APIs
-
   async connect_all() {
-      /* 
-      var accounts = await this.accounts.get()
-      var stubs = Object.keys(accounts);
-      if (!this.hasOwnProperty('ws')) {
-        this.ws = {}
-      }
-      for (var i = 0; i < stubs.length; i++) {
-        var stub = stubs[i];
-        await this.connect_stub(stub)
-      }
-      var account = this.accounts.getaccount('deribit');
-      if (account != false) {
-        var params = this.accounts.ccxtparams(account);
-        var conf = {
-          exchange: 'deribit',
-          stub: 'deribit',
-          apikey: params.parameters.apiKey,
-          secret: params.parameters.secret,
-          url: 'wss://' + params.parameters.urls.api.replace ('https://', '') + '/ws/api/v2',
-        }
-        const frostybot_wss_client_deribit = require('../exchanges/wss.client.deribit')
-        this.ws['test'] = new frostybot_wss_client_deribit(conf)
-        await this.ws['test'].connect()
-        this.ws['test'].subscribe('trades','BTC-PERPETUAL')
-      }
-      */
+      // Binance trading path uses REST/ccxt; stub WS hooks retained for API compatibility
   }
-
-
-  // Load Websocket API for a specific stub
 
   async connect_stub(stub) {
-      var account = this.accounts.getaccount(stub);
-      var base_dir = this.utils.base_dir()
-      if (['ftx'].includes(account.exchange)) {
-        var frostybot_websocket = require(base_dir + '/exchanges/websocket.' + account.exchange)
-        this.ws[stub] = new frostybot_websocket(stub, account)
-      } 
+      return false;
   }
-
-  // Websocket message receiver
 
   async message(params) {
     if (params.hasOwnProperty('frostybot')) {
       const stub = params.frostybot.stub;
-      if (this.hasOwnProperty('ws')) {
-        if (this.ws.hasOwnProperty(stub)) {
+      if (this.hasOwnProperty('ws') && this.ws.hasOwnProperty(stub)) {
           var results = this.ws[stub].parse(params);
           results.forEach (result => {
             global.frostybot.wss.emit('proxy', result)
           });
-        }
       }
     }
-    
   }
 
-  // Subscribe to channel
+  async connected(stub) {
+    return this.hasOwnProperty('ws') && this.ws.hasOwnProperty(stub);
+  }
 
-  async subscribe(params) {
-    var [stub, channel, symbol] = this.utils.extract_props(params, ['stub', 'channel', 'symbol']);
-    if (this.ws.hasOwnProperty(stub)) {
-      return await this.ws[stub].subscribe(channel, symbol);
-    }
+  async subscribe(stub, channel, symbol) {
     return false;
   }
 
-
-  // Unsubscribe 
-
-  async unsubscribe(params) {
-    var [stub, channel, symbol] = this.utils.extract_props(params, ['stub', 'channel', 'symbol']);
-    if (this.ws.hasOwnProperty(stub)) {
-      return await this.ws[stub].unsubscribe(channel, symbol);
-    }
+  async unsubscribe(stub, channel, symbol) {
     return false;
   }
-
 
 }

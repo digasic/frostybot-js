@@ -82,10 +82,10 @@ module.exports = class frostybot_exchange_base {
         if (this.account) {
             this.shortname = await this.accounts.get_shortname_from_stub(this.stub);
             const accountParams = await this.accounts.ccxtparams(this.account);
-            const exchangeId = this.account.exchange.replace('ftxus','ftx');
+            const exchangeId = this.account.exchange;
             const exchangeClass = ccxtlib[exchangeId];
             if (!exchangeClass) {
-                this.output.exception(new Error('CCXT exchange not available in this version: ' + exchangeId + ' (FTX was removed from ccxt v4)'));
+                this.output.exception(new Error('CCXT exchange not available: ' + exchangeId + ' (Binance-only build)'));
                 return false;
             }
             this.ccxtobj = new exchangeClass (accountParams.parameters);
@@ -515,7 +515,7 @@ module.exports = class frostybot_exchange_base {
         let create_result = await this.ccxt('create_order',[symbol, type, side, amount, price, order_params]);
         if (create_result.result == 'error') {
             var errortype = create_result.data.name;
-            var trimerr = create_result.data.message.replace('ftx','').replace('deribit','')
+            var trimerr = create_result.data.message.replace(/binance/gi,'')
             if (this.utils.is_json(trimerr)) {
                 var errormsg = JSON.parse(trimerr).error;
                 var result = {result: 'error', params: params, error: {type: errortype, message: errormsg}};

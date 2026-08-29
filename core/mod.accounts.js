@@ -120,12 +120,11 @@ module.exports = class frostybot_accounts_module extends frostybot_module {
 
         var schema = {
             stub: {        required: 'string', format: 'lowercase' },
-            exchange: {    required: 'string', format: 'lowercase', oneof: ['ftx', 'ftxus', 'deribit', 'binance', 'binanceus', 'bitmex'] },
+            exchange: {    required: 'string', format: 'lowercase', oneof: ['binance'] },
             description: { optional: 'string'  },
             apikey: {      required: 'string'  },
             secret: {      required: 'string'  },
             testnet: {     optional: 'boolean' },
-            subaccount: {  optional: 'string'  },
             type: {        optional: 'string', format: 'lowercase', oneof: ['spot', 'margin', 'futures', 'coinm'] },
         }
 
@@ -222,7 +221,6 @@ module.exports = class frostybot_accounts_module extends frostybot_module {
         }
 
         var testnet = account.parameters.hasOwnProperty('testnet') ? String(account.parameters.testnet) == "true" : false;
-        var subaccount = account.parameters.hasOwnProperty('subaccount') ? account.parameters.subaccount : null;
 
         var result = {
             exchange: account.hasOwnProperty('exchange') ? account.exchange : null,
@@ -232,15 +230,6 @@ module.exports = class frostybot_accounts_module extends frostybot_module {
                 secret:     account.parameters.hasOwnProperty('secret') ? await this.encryption.decrypt(account.parameters.secret) : null,
                 urls:       {},
             },   
-        }
-        if (['ftx','ftxus'].includes(result.exchange)) {
-            result.parameters.hostname = result.exchange == 'ftx' ? 'ftx.com' : 'ftx.us';
-            if (subaccount != null) {
-                switch (result.exchange) {
-                    case 'ftx'      :   result.parameters.headers = { 'FTX-SUBACCOUNT': subaccount }; break;
-                    case 'ftxus'    :   result.parameters.headers = { 'FTXUS-SUBACCOUNT': subaccount }; break;
-                }
-            }
         }
         if (result.exchange == 'binance') {
             var type = (account.hasOwnProperty('type') ? account.type.replace('futures','future').replace('coinm','delivery') : 'future');
@@ -252,10 +241,10 @@ module.exports = class frostybot_accounts_module extends frostybot_module {
                 };
             }
         }
-        const exchangeId = account.exchange.replace('ftxus','ftx');
+        const exchangeId = account.exchange;
         const exchangeClass = ccxtlib[exchangeId];
         if (!exchangeClass) {
-            this.output.exception(new Error('CCXT exchange not available: ' + exchangeId + '. FTX was removed from ccxt v4 — use binance/bybit/deribit/bitmex.'));
+            this.output.exception(new Error('CCXT exchange not available: ' + exchangeId + '. This build supports Binance only.'));
             return false;
         }
         const ccxtobj = new exchangeClass ();
@@ -263,7 +252,6 @@ module.exports = class frostybot_accounts_module extends frostybot_module {
         result.parameters.urls = ccxturls;
         if (testnet) {
             if (typeof ccxtobj.setSandboxMode === 'function' && ccxturls && ccxturls.test) {
-                // Prefer official sandbox mode; also keep legacy url swap for older adapters
                 const url = ccxturls.test;
                 result.parameters.urls.api = url;
             } else if (ccxturls && ccxturls.hasOwnProperty('test')) {
@@ -288,7 +276,7 @@ module.exports = class frostybot_accounts_module extends frostybot_module {
         const ccxtlib = require ('ccxt');
         var ccxtparams = await this.ccxtparams(account);
         const accountParams = ccxtparams.parameters;
-        const exchangeId = account.exchange.replace('ftxus','ftx');
+        const exchangeId = account.exchange;
         const exchangeClass = ccxtlib[exchangeId];
         if (!exchangeClass) {
             this.output.error('account_test');

@@ -59,13 +59,9 @@
 
                     var exchanges = {
                       'Binance:binance_spot':     "Binance Spot",
+                      'Binance:binance_margin':   "Binance Margin",
                       'Binance:binance_futures':  "Binance USDT Futures",
                       'Binance:binance_coinm':    "Binance COIN-M Futures",
-                      'Binance:binanceus':        "Binance.US",
-                      'Bitmex:bitmex':            "Bitmex",
-                      'Deribit:deribit':          "Deribit",
-                      'FTX:ftx':                  "FTX",
-                      'FTX:ftxus':                "FTX.US",
                     };
 
                     var optgroup = 'Binance';
@@ -115,15 +111,6 @@
             <label for="inputdescription" class="col-sm-2 col-form-label-sm frostybot-form-label">Description</label>
             <div class="col-sm-10">
               <input type="text" class="form-control-sm frostybot-exchange-keys frostybot-input frostybot-input-lg" id="inputdescription" value="<%= data['description'] %>">
-            </div>
-          </div>
-          <div class="row mb-2" id="subaccountfield" <%= (['ftx','ftxus'].includes(data['exchange']) ? 'style="display: none;"' : '') %>>
-            <label for="inputsubaccount" class="col-sm-2 col-form-label-sm frostybot-form-label">Subaccount</label>
-            <div class="col-sm-10">
-              <input type="text" class="form-control-sm frostybot-input frostybot-input-sm" id="inputsubaccount" value="<%= data['subaccount'] %>">
-              <span id="stubinlinehelp" class="form-text">
-                Required when using FTX subaccount, case sensitive.
-              </span>
             </div>
           </div>
           <div class="row">

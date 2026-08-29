@@ -499,30 +499,9 @@ $( document ).ready(function() {
         // Set Page Title
         $( "#accountstitle" ).html('Configure Account');
 
-        // Dynamic Form Fields        
-        function accountsFormDynamicFields() {
-            var val = $( "#inputexchange").val();
-            if (['binanceus','ftx','ftxus'].includes(val)) {
-                $( "#testnetfield" ).hide();
-            } else {
-                $( "#testnetfield" ).show();
-            }
-            if (['ftx','ftxus'].includes(val)) {
-                $( "#subaccountfield" ).show();
-            } else {
-                $( "#subaccountfield" ).hide();
-            }
-        }
-
-        $( "#inputexchange" ).on( "change", function() {
-            accountsFormDynamicFields();
-        });
-
         $( "#inputexchange" ).on( "click", function() {
             $("#inputexchange option[value='']").remove();
         });
-
-        accountsFormDynamicFields();
 
         // Submit  Form
         $("#accountsform").submit(function(event){
@@ -533,14 +512,11 @@ $( document ).ready(function() {
                 uuid: getUUID(),
                 stub: $("#inputstub").val(),
                 exchange: exchange,
-                testnet: exchange == 'ftx' ? false : $("#inputtestnet").is(":checked"),
+                testnet: $("#inputtestnet").is(":checked"),
                 apikey: $("#inputapikey").val(),
                 secret: $("#inputsecret").val(),
                 description: $("#inputdescription").val(),
             }
-            var subaccount = $("#inputsubaccount").val();
-            if ((['ftx','ftxus'].includes(exchange)) && (subaccount != ''))
-                data['subaccount'] = subaccount; 
             if (type != undefined) data['type'] = type;
             api('accounts:add', data, function(json) {
                 if (json.result == "success") {

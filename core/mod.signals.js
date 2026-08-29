@@ -233,7 +233,7 @@ module.exports = class frostybot_signals_module extends frostybot_module {
 
         var schema = {
             provider: { required: 'string', format: 'lowercase' },
-            exchange: { required: 'string', format: 'lowercase', oneof: ['ftx', 'deribit', 'binance_futures', 'binance_spot', 'binance_margin', 'binance_coinm', 'binanceus', 'bitmex'] },
+            exchange: { required: 'string', format: 'lowercase', oneof: ['binance_futures', 'binance_spot', 'binance_margin', 'binance_coinm'] },
         }
 
         if (!(params = this.utils.validator(params, schema))) return false; 
@@ -260,7 +260,7 @@ module.exports = class frostybot_signals_module extends frostybot_module {
 
         var schema = {
             provider: { required: 'string', format: 'lowercase' },
-            exchange: { required: 'string', format: 'lowercase', oneof: ['ftx', 'deribit', 'binance_futures', 'binance_spot', 'binanceus', 'bitmex'] },
+            exchange: { required: 'string', format: 'lowercase', oneof: ['binance_futures', 'binance_spot', 'binance_margin', 'binance_coinm'] },
         }
 
         if (!(params = this.utils.validator(params, schema))) return false; 
@@ -421,7 +421,7 @@ module.exports = class frostybot_signals_module extends frostybot_module {
         var schema = {
             provider: { required: 'string', format: 'lowercase' },
             user: { required: 'string', format: 'lowercase' },
-            exchange: { required: 'string', format: 'lowercase', oneof: ['ftx', 'deribit', 'binance_futures', 'binance_spot', 'binanceus', 'bitmex'] },
+            exchange: { required: 'string', format: 'lowercase', oneof: ['binance_futures', 'binance_spot', 'binance_margin', 'binance_coinm'] },
             signal: { required: 'string', format: 'lowercase', oneof: ['long', 'short', 'buy', 'sell', 'close'] },
             symbol: { required: 'string', format: 'lowercase' },
         }

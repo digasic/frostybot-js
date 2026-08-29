@@ -8,9 +8,6 @@
   
   const capitalize = (s) => {
     if (typeof s !== "string") return "";
-    if (s.toLowerCase() == "ftx") return "FTX.com";
-    if (s.toLowerCase() == "ftxus") return "FTX.us";
-    if (s.toLowerCase() == "binanceus") return "Binance US";
     if (s.toLowerCase() == "futures") return "USDT Futures";
     if (s.toLowerCase() == "coinm") return "Coin-M Futures";
     return s.charAt(0).toUpperCase() + s.slice(1)
@@ -23,7 +20,6 @@
         <th scope="col">Stub</th>
         <th scope="col">Exchange</th>
         <th scope="col">Description</th>
-        <th scope="col">Subaccount</th>
         <th scope="col text-center">Testnet</th>
         <th scope="col">Actions</th>
       </tr>
@@ -39,7 +35,6 @@
           <td><%= account.stub.toLowerCase() %></td>
           <td><%= capitalize(account.exchange) %> <%= account.type != null ? " " + capitalize(account.type) : "" %></td>
           <td><%= account.description %></td>
-          <td><%= account.parameters.subaccount %></td>
           <td><%= account.parameters.testnet == "true" ? "Yes" : "No" %></td>
           <td>
             <a href="#" data-stub="<%= account.stub.toLowerCase() %>" class="testaccountlink" data-toggle="tooltip" title="Test"><span class="fa fa-bolt fa-lg"></span></a>
