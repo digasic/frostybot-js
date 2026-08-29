@@ -267,19 +267,26 @@ module.exports = class frostybot_accounts_module extends frostybot_module {
         }
         const ccxtobj = new exchangeClass ();
         const ccxturls = ccxtobj.urls;
+        // Keep production URL catalog; Demo Trading is enabled at runtime via enableDemoTrading()
+        // (do NOT rewrite urls.api to legacy futures testnet — it is deprecated)
         result.parameters.urls = ccxturls;
-        if (testnet) {
-            if (typeof ccxtobj.setSandboxMode === 'function' && ccxturls && ccxturls.test) {
-                const url = ccxturls.test;
-                result.parameters.urls.api = url;
-            } else if (ccxturls && ccxturls.hasOwnProperty('test')) {
-                const url = ccxturls.test;
-                result.parameters.urls.api = url
-            } else {
-                this.output.translate('warning', 'testnet_not_avail', this.utils.uc_first(result.exchange));
-            }
-        }
+        result.demo = testnet;
         return result;
+    }
+
+
+    // Enable Binance Demo Trading (demo.binance.com) when stub is marked testnet/demo
+
+    apply_demo_mode(ccxtobj, testnet) {
+        if (!ccxtobj || String(testnet) !== 'true' && testnet !== true) return ccxtobj;
+        if (typeof ccxtobj.enableDemoTrading === 'function') {
+            ccxtobj.enableDemoTrading(true);
+            return ccxtobj;
+        }
+        if (typeof ccxtobj.setSandboxMode === 'function') {
+            ccxtobj.setSandboxMode(true);
+        }
+        return ccxtobj;
     }
 
 
@@ -301,16 +308,19 @@ module.exports = class frostybot_accounts_module extends frostybot_module {
             return false;
         }
         const ccxtobj = new exchangeClass (accountParams);
-        if (account.parameters && String(account.parameters.testnet) === 'true' && typeof ccxtobj.setSandboxMode === 'function') {
-            ccxtobj.setSandboxMode(true);
-        }
+        this.apply_demo_mode(ccxtobj, account.parameters && account.parameters.testnet);
         try {
-            let result = await ccxtobj.fetchBalance();
+            await ccxtobj.fetchBalance();
         } catch (e) {
-            if (e.name == 'AuthenticationError') {
+            if (e.name == 'AuthenticationError' || (e.message && /api-key|Invalid Api/i.test(e.message))) {
                 this.output.error('account_test');
+                this.output.exception(e);
                 return false;
             }
+            // Other errors still prove auth often worked; surface them
+            this.output.exception(e);
+            this.output.error('account_test');
+            return false;
         } 
         this.output.success('account_test');
         return true;
