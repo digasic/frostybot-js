@@ -52,6 +52,7 @@ if (typeof(tab_logs) != undefined) {
       $("#logpanel").jqxPanel({ height: panelheight, width: '100%', sizeMode: 'fixed', autoUpdate: true, scrollBarSize: 20});
 
       function setLogData(data) {
+        if (!Array.isArray(data)) data = [];
         var content = '<p style="padding: 5px;">';
         var colors = {
           error: '#FF0000',
@@ -62,13 +63,14 @@ if (typeof(tab_logs) != undefined) {
         };
         var colorkeys = Object.keys(colors);
         for (var i = 0; i < data.length; i++) {
-          var line = data[i];
+          var line = String(data[i]);
           var addContent = '';
           for (var j = 0; j < colorkeys.length; j++) {
             var key = colorkeys[j];
             var color = colors[key];
             if (line.toLowerCase().indexOf(key.toLowerCase()) != -1) {
               addContent = '<font color="' + color + '">' + line.replace(/\ \ /g,'&nbsp;&nbsp;') + '</font><br />';
+              break;
             }
           }
           if (addContent == '') 
@@ -76,26 +78,42 @@ if (typeof(tab_logs) != undefined) {
           content += addContent;
         }; 
         content += '</p>';
-        $("#logpanel").html(content);
+        // jqxPanel: .html() on root hides content inside overflow:hidden wrapper
+        try {
+          $("#logpanel").jqxPanel('clearcontent');
+          $("#logpanel").jqxPanel('append', content);
+        } catch (e) {
+          $("#logpanel").html(content);
+        }
       }
 
       function refreshLog() {
         var token = null;
         if (localStorage) {
           var token = localStorage.getItem("token");
-          if (token != null) {
+          if (token != null && token != "null") {
             var params = {
               token: JSON.parse(token),
               filters: getFilters()
             };
-            //setLogData([]);
-            jQuery.getJSON({
+            jQuery.ajax({
               url: "/ui/data/logdata",
               data: params,
+              dataType: "json",
+              traditional: false,
               success: function(result) {
                 setLogData(result);
-                var d = $('#logpanel');
-                d.scrollTop(d.prop("scrollHeight"));
+                try {
+                  var d = $('#logpanel');
+                  d.jqxPanel('scrollTo', 0, 999999);
+                } catch (e) {}
+              },
+              error: function(xhr) {
+                if (xhr.status === 401) {
+                  setLogData(['ERROR   │ Session expired — please logout and login again']);
+                } else {
+                  setLogData(['ERROR   │ Failed to load logs (HTTP ' + xhr.status + ')']);
+                }
               }
             });
           }
@@ -109,7 +127,7 @@ if (typeof(tab_logs) != undefined) {
         (logfilters + ',_').split(',').forEach(filter => {
           if (filter != '_') {
             var item = $("#logsfilter").jqxDropDownList('getItemByValue', filter);
-            if (item.hasOwnProperty('index')) {
+            if (item && item.hasOwnProperty('index')) {
               $("#logsfilter").jqxDropDownList('checkIndex', item.index)
             }
           }

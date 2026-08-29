@@ -120,20 +120,30 @@ module.exports = class frostybot_user_module extends frostybot_module {
         return false;
     }
 
-    // Set core user email and password
+    // Set core user email and password (preserve session token on restart)
 
     async core(email, password) {
         var uuid = await this.encryption.core_uuid();
-        var password = await this.encryption.encrypt(password, uuid);
+        var encrypted = await this.encryption.encrypt(password, uuid);
+        var existing = await this.database.select('users', { uuid: uuid });
+        if (existing.length > 0) {
+            // UPDATE only credentials — insertOrReplace wiped token/expiry on every docker start
+            var result = await this.database.update('users', {
+                email: email,
+                password: JSON.stringify(encrypted),
+                enabled: 1
+            }, { uuid: uuid });
+            return result !== false;
+        }
         var data = {
             uuid: uuid,
             email: email,
-            password: JSON.stringify(password)
-        }
+            password: JSON.stringify(encrypted)
+        };
         if ((await this.database.insertOrReplace('users', data)).changes > 0)
             return true;
         else
-            return false   
+            return false;
     }
 
     // User Registration
@@ -470,7 +480,7 @@ module.exports = class frostybot_user_module extends frostybot_module {
         if (!Array.isArray(filters) && typeof(filters) == 'string') { filters = [ filters ]; }
         var result = await this.database.select('logs', {uuid: uuid}, 1000);
         var output = [];
-        if (result.length > 1) {
+        if (result.length > 0) {
             for (var i = 0; i < result.length; i++) {
                 var row = result[i];
                 var date = new Date(row.timestamp);
@@ -479,7 +489,6 @@ module.exports = class frostybot_user_module extends frostybot_module {
                     output.push(row);
             }
             return output;
-            //return result;
         }  
         return this.output.error('log_retrieve', [uuid]);  
     }
