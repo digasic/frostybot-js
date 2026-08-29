@@ -130,8 +130,8 @@ module.exports = class frostybot_exchange_binance_margin extends frostybot_excha
     async fetch_tickers() {
         var results = {};
         this.data.tickers = {};
-        this.set_cache_time('v3_get_ticker_bookticker', 10);
-        var tickersRaw = await this.ccxt('v3_get_ticker_bookticker')
+        this.set_cache_time('public_get_ticker_bookticker', 10);
+        var tickersRaw = await this.ccxt('public_get_ticker_bookticker')
         for (var i = 0; i < tickersRaw.length; i++) {
             var tickerRaw = tickersRaw[i];
             var symbol = tickerRaw.symbol;

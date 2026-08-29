@@ -19,9 +19,9 @@ echo "Installing prerequisite packages for Frostybot..."
 sudo -E apt-get -qy -o "Dpkg::Options::=--force-confdef" -o "Dpkg::Options::=--force-confold" \
   install curl ca-certificates gnupg jq wget git sqlite3 build-essential python3 >> "$LOG_FILE" 2>&1
 
-if ! command -v node >/dev/null 2>&1 || [[ "$(node -v 2>/dev/null | sed 's/v//;s/\..*//')" -lt 16 ]]; then
-  echo "Installing Node.js 16.x..."
-  curl -fsSL https://deb.nodesource.com/setup_16.x | sudo -E bash - >> "$LOG_FILE" 2>&1
+if ! command -v node >/dev/null 2>&1 || [[ "$(node -v 2>/dev/null | sed 's/v//;s/\..*//')" -lt 18 ]]; then
+  echo "Installing Node.js 20.x..."
+  curl -fsSL https://deb.nodesource.com/setup_20.x | sudo -E bash - >> "$LOG_FILE" 2>&1
   sudo -E apt-get -qy install nodejs >> "$LOG_FILE" 2>&1
 fi
 

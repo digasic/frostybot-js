@@ -17,9 +17,13 @@ Standalone maintained fork of Frostybot-JS — a Node.js API endpoint for crypto
 
 Use at your own risk. This is beta-era software with dated exchange adapters (`ccxt` ~1.41). Prefer a sub-account / testnet. Risk management is entirely yours.
 
-### Supported exchanges (legacy)
+### Supported exchanges (legacy adapters)
 
-Bitmex, FTX (defunct), Deribit, Binance (Spot / Margin / USDT / Coin-M Futures), BinanceUS — APIs may have drifted since 2021.
+Binance (Spot / Margin / USDT-M Futures / Coin-M), BinanceUS, Deribit, Bitmex.
+
+**FTX is not supported** — removed from ccxt v4 and the exchange is defunct.
+
+Uses **ccxt 4.x** (Node ≥ 18).
 
 ---
 

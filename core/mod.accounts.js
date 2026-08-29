@@ -254,11 +254,19 @@ module.exports = class frostybot_accounts_module extends frostybot_module {
         }
         const exchangeId = account.exchange.replace('ftxus','ftx');
         const exchangeClass = ccxtlib[exchangeId];
+        if (!exchangeClass) {
+            this.output.exception(new Error('CCXT exchange not available: ' + exchangeId + '. FTX was removed from ccxt v4 — use binance/bybit/deribit/bitmex.'));
+            return false;
+        }
         const ccxtobj = new exchangeClass ();
         const ccxturls = ccxtobj.urls;
         result.parameters.urls = ccxturls;
         if (testnet) {
-            if (ccxturls.hasOwnProperty('test')) {
+            if (typeof ccxtobj.setSandboxMode === 'function' && ccxturls && ccxturls.test) {
+                // Prefer official sandbox mode; also keep legacy url swap for older adapters
+                const url = ccxturls.test;
+                result.parameters.urls.api = url;
+            } else if (ccxturls && ccxturls.hasOwnProperty('test')) {
                 const url = ccxturls.test;
                 result.parameters.urls.api = url
             } else {
@@ -282,7 +290,14 @@ module.exports = class frostybot_accounts_module extends frostybot_module {
         const accountParams = ccxtparams.parameters;
         const exchangeId = account.exchange.replace('ftxus','ftx');
         const exchangeClass = ccxtlib[exchangeId];
+        if (!exchangeClass) {
+            this.output.error('account_test');
+            return false;
+        }
         const ccxtobj = new exchangeClass (accountParams);
+        if (account.parameters && String(account.parameters.testnet) === 'true' && typeof ccxtobj.setSandboxMode === 'function') {
+            ccxtobj.setSandboxMode(true);
+        }
         try {
             let result = await ccxtobj.fetchBalance();
         } catch (e) {

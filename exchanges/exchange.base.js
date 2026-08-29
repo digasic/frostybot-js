@@ -84,8 +84,16 @@ module.exports = class frostybot_exchange_base {
             const accountParams = await this.accounts.ccxtparams(this.account);
             const exchangeId = this.account.exchange.replace('ftxus','ftx');
             const exchangeClass = ccxtlib[exchangeId];
+            if (!exchangeClass) {
+                this.output.exception(new Error('CCXT exchange not available in this version: ' + exchangeId + ' (FTX was removed from ccxt v4)'));
+                return false;
+            }
             this.ccxtobj = new exchangeClass (accountParams.parameters);
+            this.ccxtobj.options = this.ccxtobj.options || {};
             this.ccxtobj.options.adjustForTimeDifference = true
+            if (accountParams.parameters && String(this.account.parameters && this.account.parameters.testnet) === 'true' && typeof this.ccxtobj.setSandboxMode === 'function') {
+                this.ccxtobj.setSandboxMode(true);
+            }
             try {
                 await this.ccxtobj.loadMarkets();    
                 return true;
@@ -125,6 +133,19 @@ module.exports = class frostybot_exchange_base {
         return result;
     }
 
+    // Resolve CCXT method (snake_case + camelCase aliases across ccxt versions)
+
+    resolve_ccxt_method(method) {
+        if (typeof this.ccxtobj[method] === 'function') {
+            return this.ccxtobj[method].bind(this.ccxtobj);
+        }
+        const camel = String(method).replace(/_([a-z0-9])/g, (_, c) => c.toUpperCase());
+        if (typeof this.ccxtobj[camel] === 'function') {
+            return this.ccxtobj[camel].bind(this.ccxtobj);
+        }
+        throw new Error('CCXT method not found: ' + method);
+    }
+
     // Cache Execute
 
     async cache_exec(type, method, params = [], nocache = false) {
@@ -146,7 +167,7 @@ module.exports = class frostybot_exchange_base {
                 switch (type) {
                     case 'normalizer'   :   var result = await this[method](...params);
                                             break;
-                    case 'ccxt'         :   var result = await this.ccxtobj[method](...params);
+                    case 'ccxt'         :   var result = await this.resolve_ccxt_method(method)(...params);
                                             break;
                 }
                 if (result != null) {this.cache.set( key, result, cachetime );}
