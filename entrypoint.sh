@@ -17,5 +17,16 @@ cp -f /usr/local/frostybot-js/scripts/motd /etc/motd  > /dev/null 2>&1
 service ssh start
 frostybot start
 
+# Fresh installs ship with GUI disabled — enable on first boot if requested
+if [ "${GUI_AUTO_ENABLE:-true}" = "true" ]; then
+  GUI_EMAIL="${GUI_EMAIL:-admin@localhost}"
+  GUI_PASSWORD="${GUI_PASSWORD:-frostybot123}"
+  frostybot "gui:enable email=${GUI_EMAIL} password=${GUI_PASSWORD}" >/dev/null 2>&1 || true
+fi
+
+# Docker host traffic arrives as bridge gateway IP — whitelist it for webhooks/API
+frostybot "whitelist:add ip=172.17.0.1 description=docker-host" >/dev/null 2>&1 || true
+frostybot "whitelist:add ip=127.0.0.1 description=localhost" >/dev/null 2>&1 || true
+
 cat /etc/motd
 tail -f ./log/frostybot.log
